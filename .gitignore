@@ -13,3 +13,6 @@ models.json
 extensions/oc.ts
 
 extensions/tx9/
+
+.claude/
+.playwright-mcp/
