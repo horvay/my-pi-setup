@@ -27,6 +27,8 @@ import { type AgentConfig, type AgentScope, discoverAgents } from "./agents.js";
 const MAX_PARALLEL_TASKS = 8;
 const MAX_CONCURRENCY = 4;
 const COLLAPSED_ITEM_COUNT = 10;
+const SUBAGENT_EXIT_GRACE_MS = 250;
+const SUBAGENT_FORCE_KILL_MS = 5000;
 
 function formatTokens(count: number): string {
 	if (count < 1000) return count.toString();
@@ -311,9 +313,43 @@ async function runSingleAgent(
 				stdio: ["ignore", "pipe", "pipe"],
 			});
 			let buffer = "";
+			let settled = false;
+			let semanticCompletionSeen = false;
+			let exitGraceTimer: ReturnType<typeof setTimeout> | undefined;
+			let forceKillTimer: ReturnType<typeof setTimeout> | undefined;
+
+			const clearTimers = () => {
+				if (exitGraceTimer) clearTimeout(exitGraceTimer);
+				if (forceKillTimer) clearTimeout(forceKillTimer);
+				exitGraceTimer = undefined;
+				forceKillTimer = undefined;
+			};
+
+			const resolveOnce = (code: number) => {
+				if (settled) return;
+				settled = true;
+				resolve(code);
+			};
+
+			const scheduleForcedExit = () => {
+				if (exitGraceTimer || proc.exitCode !== null || proc.killed) return;
+				exitGraceTimer = setTimeout(() => {
+					if (proc.exitCode !== null || proc.killed) return;
+					proc.kill("SIGTERM");
+					forceKillTimer = setTimeout(() => {
+						if (proc.exitCode === null && !proc.killed) proc.kill("SIGKILL");
+					}, SUBAGENT_FORCE_KILL_MS);
+				}, SUBAGENT_EXIT_GRACE_MS);
+			};
+
+			const markSemanticCompletion = () => {
+				semanticCompletionSeen = true;
+				scheduleForcedExit();
+				resolveOnce(proc.exitCode ?? 0);
+			};
 
 			const processLine = (line: string) => {
-				if (!line.trim()) return;
+				if (settled || !line.trim()) return;
 				let event: any;
 				try {
 					event = JSON.parse(line);
@@ -341,11 +377,21 @@ async function runSingleAgent(
 						if (msg.errorMessage) currentResult.errorMessage = msg.errorMessage;
 					}
 					emitUpdate();
+
+					if (msg.role === "assistant" && msg.stopReason && msg.stopReason !== "toolUse") {
+						markSemanticCompletion();
+					}
+					return;
 				}
 
 				if (event.type === "tool_result_end" && event.message) {
 					currentResult.messages.push(event.message as Message);
 					emitUpdate();
+					return;
+				}
+
+				if (event.type === "agent_end") {
+					markSemanticCompletion();
 				}
 			};
 
@@ -357,25 +403,29 @@ async function runSingleAgent(
 			});
 
 			proc.stderr.on("data", (data) => {
+				if (settled) return;
 				currentResult.stderr += data.toString();
 			});
 
 			proc.on("close", (code) => {
-				if (buffer.trim()) processLine(buffer);
-				resolve(code ?? 0);
+				clearTimers();
+				if (!settled && buffer.trim()) processLine(buffer);
+				resolveOnce(code ?? (semanticCompletionSeen ? 0 : 1));
 			});
 
 			proc.on("error", () => {
-				resolve(1);
+				clearTimers();
+				resolveOnce(1);
 			});
 
 			if (signal) {
 				const killProc = () => {
 					wasAborted = true;
+					clearTimers();
 					proc.kill("SIGTERM");
-					setTimeout(() => {
-						if (!proc.killed) proc.kill("SIGKILL");
-					}, 5000);
+					forceKillTimer = setTimeout(() => {
+						if (proc.exitCode === null && !proc.killed) proc.kill("SIGKILL");
+					}, SUBAGENT_FORCE_KILL_MS);
 				};
 				if (signal.aborted) killProc();
 				else signal.addEventListener("abort", killProc, { once: true });

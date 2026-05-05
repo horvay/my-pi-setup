@@ -39,14 +39,28 @@ const isCompactionEntry = (entry: unknown): entry is CompactionEntry => {
 
 const tokenSum = (messages: Message[]) => messages.reduce((total, message) => total + estimateTokens(message), 0);
 
+const isValidCutPoint = (entry: MessageEntry | undefined) => {
+	const role = entry?.message.role;
+	return role === "user" || role === "assistant" || role === "bashExecution" || role === "custom" || role === "branchSummary";
+};
+
 const getTailStartIndex = (entries: MessageEntry[]) => {
 	let tokens = 0;
+	let tailStartIndex = 0;
 	for (let i = entries.length - 1; i >= 0; i--) {
 		const nextTokens = estimateTokens(entries[i].message);
-		if (tokens > 0 && tokens + nextTokens > KEEP_TAIL_TOKENS) return i + 1;
+		if (tokens > 0 && tokens + nextTokens > KEEP_TAIL_TOKENS) {
+			tailStartIndex = i + 1;
+			break;
+		}
 		tokens += nextTokens;
 	}
-	return 0;
+
+	while (tailStartIndex > 0 && !isValidCutPoint(entries[tailStartIndex])) {
+		tailStartIndex--;
+	}
+
+	return tailStartIndex;
 };
 
 const buildMessageText = (message: Message) => serializeConversation(convertToLlm([message]));
