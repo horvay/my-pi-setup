@@ -105,8 +105,8 @@ export default function (pi: ExtensionAPI) {
 		defineTool({
 			name: "mcp_playwright_list_tools",
 			label: "MCP Playwright: list tools",
-			description: "List tools exposed by the Playwright MCP server.",
-			promptSnippet: "mcp_playwright_list_tools: list browser automation tools exposed by Playwright MCP.",
+			description: "List Playwright MCP browser tools.",
+			promptSnippet: "List Playwright MCP browser tools.",
 			parameters: Type.Object({}),
 			async execute() {
 				const client = await connect();
@@ -128,17 +128,12 @@ export default function (pi: ExtensionAPI) {
 		defineTool({
 			name: "mcp_playwright_call_tool",
 			label: "MCP Playwright: call tool",
-			description:
-				"Call a tool exposed by the Playwright MCP server. Use mcp_playwright_list_tools first to discover available tool names and arguments.",
-			promptSnippet:
-				'mcp_playwright_call_tool: call a Playwright MCP browser automation tool with {"name":"browser_navigate","argumentsJson":"{\\"url\\":\\"https://example.com\\"}"}.',
+			description: "Call a Playwright MCP browser tool; use mcp_playwright_list_tools first to discover names/args.",
+			promptSnippet: 'Call a listed Playwright MCP tool, e.g. {"name":"browser_navigate","argumentsJson":"{\\"url\\":\\"https://example.com\\"}"}.',
 			parameters: Type.Object({
-				name: Type.String({ description: "The exact MCP tool name to call." }),
+				name: Type.String({ description: "MCP tool name." }),
 				argumentsJson: Type.Optional(
-					Type.String({
-						description:
-							'JSON object string for the MCP tool arguments, e.g. {"url":"https://example.com"}. Use this instead of top-level url/click/etc.',
-					}),
+					Type.String({ description: "JSON object string of args; use instead of top-level url/click/etc." }),
 				),
 			}),
 			async execute(_toolCallId, params: McpToolCallParams, signal) {

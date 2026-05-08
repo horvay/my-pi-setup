@@ -60,17 +60,17 @@ export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "search",
     label: "Search Web",
-    description: "Search the web with Firecrawl. Returns web/news/image results, and can optionally include markdown content for each web result.",
+    description: "Search web/news/images with Firecrawl; optionally scrape result markdown.",
     promptSnippet: "Search the web with Firecrawl for current information.",
     promptGuidelines: [
-      "Use search when the user asks for current web information, discovery, or sources beyond the local workspace.",
-      "Use scrape after search when you need the full markdown content of a specific page.",
+      "Use when the user asks for current web info, discovery, or sources beyond the workspace.",
+      "Use scrape after search when a result needs full markdown content.",
     ],
     parameters: Type.Object({
       query: Type.String({ description: "The web search query." }),
-      limit: Type.Optional(Type.Number({ description: "Maximum number of results to return. Defaults to 5.", minimum: 1, maximum: 20 })),
+      limit: Type.Optional(Type.Number({ description: "Max results; default 5.", minimum: 1, maximum: 20 })),
       source: Type.Optional(StringEnum(["web", "news", "images"] as const)),
-      scrapeResults: Type.Optional(Type.Boolean({ description: "Whether to scrape result pages and include markdown. Defaults to false." })),
+      scrapeResults: Type.Optional(Type.Boolean({ description: "Include page markdown; default false." })),
     }),
     async execute(_toolCallId, params, signal, onUpdate) {
       try {
@@ -103,18 +103,15 @@ export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "scrape",
     label: "Scrape Page",
-    description: "Grab the content of a single page with Firecrawl and return agent-consumable markdown.",
-    promptSnippet: "Fetch a URL's page content as markdown with Firecrawl.",
-    promptGuidelines: [
-      "Use scrape when you need the full readable markdown content of a known URL.",
-      "Prefer scrape over bash/fetch for web pages because scrape returns cleaned markdown suitable for agent context.",
-    ],
+    description: "Fetch a URL as cleaned markdown with Firecrawl.",
+    promptSnippet: "Fetch a known URL as readable markdown.",
+    promptGuidelines: ["Use for known URLs; prefer over shell fetch because output is cleaned for agent context."],
     parameters: Type.Object({
       url: Type.String({ description: "The URL to fetch." }),
-      onlyMainContent: Type.Optional(Type.Boolean({ description: "Only return the main page content. Defaults to true." })),
-      waitFor: Type.Optional(Type.Number({ description: "Milliseconds to wait before capturing content, useful for JS-heavy pages." })),
-      timeout: Type.Optional(Type.Number({ description: "Request timeout in milliseconds. Defaults to 30000." })),
-      includeMetadata: Type.Optional(Type.Boolean({ description: "Append page metadata to the markdown output. Defaults to false. Full metadata is always available in details." })),
+      onlyMainContent: Type.Optional(Type.Boolean({ description: "Main content only; default true." })),
+      waitFor: Type.Optional(Type.Number({ description: "Wait ms before capture." })),
+      timeout: Type.Optional(Type.Number({ description: "Timeout ms; default 30000." })),
+      includeMetadata: Type.Optional(Type.Boolean({ description: "Append metadata; default false; details always include it." })),
     }),
     async execute(_toolCallId, params, signal, onUpdate) {
       try {

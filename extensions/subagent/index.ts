@@ -452,57 +452,40 @@ async function runSingleAgent(
 }
 
 const TaskItem = Type.Object({
-	agent: Type.String({ description: "Name of the agent to invoke" }),
-	task: Type.String({ description: "Task to delegate to the agent" }),
-	model: Type.Optional(
-		Type.String({ description: "Model pattern or provider/id for this task. Defaults to the currently selected model." }),
-	),
-	cwd: Type.Optional(Type.String({ description: "Working directory for the agent process" })),
+	agent: Type.String({ description: "Agent name" }),
+	task: Type.String({ description: "Task to delegate" }),
+	model: Type.Optional(Type.String({ description: "Model override; defaults current model" })),
+	cwd: Type.Optional(Type.String({ description: "Working directory" })),
 });
 
 const ChainItem = Type.Object({
-	agent: Type.String({ description: "Name of the agent to invoke" }),
-	task: Type.String({ description: "Task with optional {previous} placeholder for prior output" }),
-	model: Type.Optional(
-		Type.String({ description: "Model pattern or provider/id for this step. Defaults to the currently selected model." }),
-	),
-	cwd: Type.Optional(Type.String({ description: "Working directory for the agent process" })),
+	agent: Type.String({ description: "Agent name" }),
+	task: Type.String({ description: "Task; may include {previous}" }),
+	model: Type.Optional(Type.String({ description: "Model override; defaults current model" })),
+	cwd: Type.Optional(Type.String({ description: "Working directory" })),
 });
 
 const AgentScopeSchema = StringEnum(["user", "project", "both"] as const, {
-	description: 'Which agent directories to use. Default: "user". Use "both" to include project-local agents.',
+	description: 'Agent dirs: "user" default, "project", or "both" for .pi/agents.',
 	default: "user",
 });
 
 const SubagentParams = Type.Object({
-	agent: Type.Optional(Type.String({ description: "Name of the agent to invoke (for single mode)" })),
-	task: Type.Optional(Type.String({ description: "Task to delegate (for single mode)" })),
-	model: Type.Optional(
-		Type.String({
-			description:
-				"Default model pattern or provider/id to use. Defaults to the currently selected model and can be overridden per task/step.",
-		}),
-	),
-	tasks: Type.Optional(Type.Array(TaskItem, { description: "Array of {agent, task, model?} for parallel execution" })),
-	chain: Type.Optional(Type.Array(ChainItem, { description: "Array of {agent, task, model?} for sequential execution" })),
+	agent: Type.Optional(Type.String({ description: "Agent name for single mode" })),
+	task: Type.Optional(Type.String({ description: "Task for single mode" })),
+	model: Type.Optional(Type.String({ description: "Default model override for task/step" })),
+	tasks: Type.Optional(Type.Array(TaskItem, { description: "Parallel tasks" })),
+	chain: Type.Optional(Type.Array(ChainItem, { description: "Sequential tasks with {previous}" })),
 	agentScope: Type.Optional(AgentScopeSchema),
-	confirmProjectAgents: Type.Optional(
-		Type.Boolean({ description: "Prompt before running project-local agents. Default: true.", default: true }),
-	),
-	cwd: Type.Optional(Type.String({ description: "Working directory for the agent process (single mode)" })),
+	confirmProjectAgents: Type.Optional(Type.Boolean({ description: "Prompt before project agents; default true.", default: true })),
+	cwd: Type.Optional(Type.String({ description: "Working directory for single mode" })),
 });
 
 export default function (pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "subagent",
 		label: "Subagent",
-		description: [
-			"Delegate tasks to specialized subagents with isolated context.",
-			"Modes: single (agent + task), parallel (tasks array), chain (sequential with {previous} placeholder).",
-			"Subagents use the currently selected model by default; set model globally or per task/step to override.",
-			'Default agent scope is "user" (from ~/.pi/agent/agents).',
-			'To enable project-local agents in .pi/agents, set agentScope: "both" (or "project").',
-		].join(" "),
+		description: "Delegate to isolated specialized subagents. Modes: agent+task, tasks[] parallel, or chain[] sequential with {previous}; default scope is user agents, set agentScope for project agents.",
 		parameters: SubagentParams,
 
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
