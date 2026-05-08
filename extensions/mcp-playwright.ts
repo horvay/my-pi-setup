@@ -84,6 +84,22 @@ const formatMcpContent = (content: unknown) => {
 	});
 };
 
+type McpToolCallParams = {
+	name: string;
+	arguments?: Record<string, unknown>;
+	argumentsJson?: string;
+};
+
+const parseToolArguments = (params: McpToolCallParams) => {
+	if (!params.argumentsJson?.trim()) return params.arguments ?? {};
+
+	const parsed = JSON.parse(params.argumentsJson) as unknown;
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+		throw new Error("argumentsJson must parse to a JSON object.");
+	}
+	return parsed as Record<string, unknown>;
+};
+
 export default function (pi: ExtensionAPI) {
 	pi.registerTool(
 		defineTool({
@@ -97,7 +113,8 @@ export default function (pi: ExtensionAPI) {
 				const result = await client.listTools();
 				const lines = result.tools.map((tool) => {
 					const description = tool.description ? ` — ${tool.description}` : "";
-					return `- ${tool.name}${description}`;
+					const inputSchema = tool.inputSchema ? `\n  inputSchema: ${JSON.stringify(tool.inputSchema)}` : "";
+					return `- ${tool.name}${description}${inputSchema}`;
 				});
 				return {
 					content: [{ type: "text", text: lines.join("\n") || "No MCP tools exposed." }],
@@ -114,15 +131,20 @@ export default function (pi: ExtensionAPI) {
 			description:
 				"Call a tool exposed by the Playwright MCP server. Use mcp_playwright_list_tools first to discover available tool names and arguments.",
 			promptSnippet:
-				"mcp_playwright_call_tool: call a Playwright MCP browser automation tool by name with JSON arguments.",
+				'mcp_playwright_call_tool: call a Playwright MCP browser automation tool with {"name":"browser_navigate","argumentsJson":"{\\"url\\":\\"https://example.com\\"}"}.',
 			parameters: Type.Object({
 				name: Type.String({ description: "The exact MCP tool name to call." }),
-				arguments: Type.Optional(Type.Record(Type.String(), Type.Any(), { description: "JSON arguments for the MCP tool." })),
+				argumentsJson: Type.Optional(
+					Type.String({
+						description:
+							'JSON object string for the MCP tool arguments, e.g. {"url":"https://example.com"}. Use this instead of top-level url/click/etc.',
+					}),
+				),
 			}),
-			async execute(_toolCallId, params, signal) {
+			async execute(_toolCallId, params: McpToolCallParams, signal) {
 				const client = await connect();
 				const result = await client.callTool(
-					{ name: params.name, arguments: params.arguments ?? {} },
+					{ name: params.name, arguments: parseToolArguments(params) },
 					undefined,
 					signal ? { signal } : undefined,
 				);
