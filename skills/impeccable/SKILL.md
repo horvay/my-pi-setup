@@ -1,6 +1,6 @@
 ---
 name: impeccable
-description: Use for frontend UI/UX work on websites, landing pages, dashboards, product UI, app shells, components, forms, settings, onboarding, and empty states: design/redesign, shape, critique, audit, polish, clarify, distill, harden, optimize, adapt, animate, colorize, extract, visual hierarchy, IA, cognitive load, accessibility, performance, responsive behavior, theming, anti-patterns, typography, spacing, layout, alignment, color, motion, micro-interactions, UX copy, errors, edge cases, i18n, design systems/tokens, live browser iteration, and making UI bolder, calmer, more delightful, or extraordinary. Not for backend-only tasks.
+description: "Use for frontend UI/UX work on websites, landing pages, dashboards, product UI, app shells, components, forms, settings, onboarding, and empty states: design/redesign, shape, critique, audit, polish, clarify, distill, harden, optimize, adapt, animate, colorize, extract, visual hierarchy, IA, cognitive load, accessibility, performance, responsive behavior, theming, anti-patterns, typography, spacing, layout, alignment, color, motion, micro-interactions, UX copy, errors, edge cases, i18n, design systems/tokens, live browser iteration, and making UI bolder, calmer, more delightful, or extraordinary. Not for backend-only tasks."
 ---
 
 Designs and iterates production-grade frontend interfaces. Real working code, committed design choices, exceptional craft.

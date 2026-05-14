@@ -44,10 +44,6 @@ const connect = async () => {
 		// Use an isolated browser profile so multiple MCP sessions do not collide on
 		// the same persisted Chrome-for-Testing profile directory.
 		args: ["@playwright/mcp@latest", "--browser", "chromium", "--isolated"],
-		// The MCP stdio transport only inherits a very small set of environment
-		// variables by default, which omits desktop session variables like DISPLAY
-		// and WAYLAND_DISPLAY. Forward the current GUI session env so Playwright can
-		// launch a visible browser window instead of falling back to headless mode.
 		env: getPlaywrightMcpEnv(),
 		stderr: "pipe",
 	});
