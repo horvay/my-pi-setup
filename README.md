@@ -1,10 +1,6 @@
-my pi setup
+# my pi setup
 
-_i don't actually recommend u use this setup. it's just a reference at what's possible_
-
-this is a fork of [davis7dotsh/my-pi-setup](https://github.com/davis7dotsh/my-pi-setup).
-
-![Preview](assets/preview.png)
+this is my fork of [davis7dotsh/my-pi-setup](https://github.com/davis7dotsh/my-pi-setup).
 
 ## what i've added
 
@@ -16,6 +12,16 @@ this is a fork of [davis7dotsh/my-pi-setup](https://github.com/davis7dotsh/my-pi
 - Playwright MCP config and wrapper (`.mcp.json`, `bin/playwright-cli`)
 - added skills: `grill-with-docs`, `impeccable`, `improve-codebase-architecture`, `prototype`, `to-prd`, and `zoom-out`
 - bumped pi packages and default settings for my current setup
+
+---
+
+## Original Readme
+
+my pi setup
+
+_i don't actually recommend u use this setup. it's just a reference at what's possible_
+
+![Preview](assets/preview.png)
 
 ## if u really want to use it
 
