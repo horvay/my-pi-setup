@@ -2,7 +2,20 @@ my pi setup
 
 _i don't actually recommend u use this setup. it's just a reference at what's possible_
 
+this is a fork of [davis7dotsh/my-pi-setup](https://github.com/davis7dotsh/my-pi-setup).
+
 ![Preview](assets/preview.png)
+
+## what i've added
+
+- personal agent instructions in `AGENTS.md` (bun-by-default TypeScript, SvelteKit notes, numbered questions)
+- custom subagents in `agents/`: planner, scout, worker, and reviewer
+- reusable prompt templates in `prompts/` for scout/plan and implementation flows
+- extra extensions for background processes, process cleanup, exit, undo, compact modes, Playwright MCP, opencode zen login, and subagent delegation
+- Firecrawl tool wording trimmed down to reduce prompt overhead, plus small `yeet` updates for `master` branches
+- Playwright MCP config and wrapper (`.mcp.json`, `bin/playwright-cli`)
+- added skills: `grill-with-docs`, `impeccable`, `improve-codebase-architecture`, `prototype`, `to-prd`, and `zoom-out`
+- bumped pi packages and default settings for my current setup
 
 ## if u really want to use it
 
