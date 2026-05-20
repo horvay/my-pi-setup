@@ -150,6 +150,7 @@ interface SingleResult {
 	stderr: string;
 	usage: UsageStats;
 	model?: string;
+	thinkingLevel?: string;
 	stopReason?: string;
 	errorMessage?: string;
 	step?: number;
@@ -268,6 +269,7 @@ async function runSingleAgent(
 	const resolvedModel = model ?? agent.model;
 	const args: string[] = ["--mode", "json", "-p", "--no-session"];
 	if (resolvedModel) args.push("--model", resolvedModel);
+	if (agent.thinkingLevel) args.push("--thinking", agent.thinkingLevel);
 	if (agent.tools && agent.tools.length > 0) args.push("--tools", agent.tools.join(","));
 
 	let tmpPromptDir: string | null = null;
@@ -282,6 +284,7 @@ async function runSingleAgent(
 		stderr: "",
 		usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, contextTokens: 0, turns: 0 },
 		model: resolvedModel,
+		thinkingLevel: agent.thinkingLevel,
 		step,
 	};
 
@@ -477,7 +480,6 @@ const SubagentParams = Type.Object({
 	tasks: Type.Optional(Type.Array(TaskItem, { description: "Parallel tasks" })),
 	chain: Type.Optional(Type.Array(ChainItem, { description: "Sequential tasks with {previous}" })),
 	agentScope: Type.Optional(AgentScopeSchema),
-	confirmProjectAgents: Type.Optional(Type.Boolean({ description: "Prompt before project agents; default true.", default: true })),
 	cwd: Type.Optional(Type.String({ description: "Working directory for single mode" })),
 });
 
@@ -492,9 +494,11 @@ export default function (pi: ExtensionAPI) {
 			const agentScope: AgentScope = params.agentScope ?? "user";
 			const discovery = discoverAgents(ctx.cwd, agentScope);
 			const agents = discovery.agents;
-			const confirmProjectAgents = params.confirmProjectAgents ?? true;
 			const currentModel = ctx.model ? `${ctx.model.provider}/${ctx.model.id}:${pi.getThinkingLevel()}` : undefined;
-			const getRequestedModel = (model: string | undefined) => model ?? params.model ?? currentModel;
+			const getRequestedModel = (agentName: string, model: string | undefined) => {
+				const agent = agents.find((a) => a.name === agentName);
+				return model ?? params.model ?? (agent?.model ? undefined : currentModel);
+			};
 
 			const hasChain = (params.chain?.length ?? 0) > 0;
 			const hasTasks = (params.tasks?.length ?? 0) > 0;
@@ -521,31 +525,6 @@ export default function (pi: ExtensionAPI) {
 					],
 					details: makeDetails("single")([]),
 				};
-			}
-
-			if ((agentScope === "project" || agentScope === "both") && confirmProjectAgents && ctx.hasUI) {
-				const requestedAgentNames = new Set<string>();
-				if (params.chain) for (const step of params.chain) requestedAgentNames.add(step.agent);
-				if (params.tasks) for (const t of params.tasks) requestedAgentNames.add(t.agent);
-				if (params.agent) requestedAgentNames.add(params.agent);
-
-				const projectAgentsRequested = Array.from(requestedAgentNames)
-					.map((name) => agents.find((a) => a.name === name))
-					.filter((a): a is AgentConfig => a?.source === "project");
-
-				if (projectAgentsRequested.length > 0) {
-					const names = projectAgentsRequested.map((a) => a.name).join(", ");
-					const dir = discovery.projectAgentsDir ?? "(unknown)";
-					const ok = await ctx.ui.confirm(
-						"Run project-local agents?",
-						`Agents: ${names}\nSource: ${dir}\n\nProject agents are repo-controlled. Only continue for trusted repositories.`,
-					);
-					if (!ok)
-						return {
-							content: [{ type: "text", text: "Canceled: project-local agents not approved." }],
-							details: makeDetails(hasChain ? "chain" : hasTasks ? "parallel" : "single")([]),
-						};
-				}
 			}
 
 			if (params.chain && params.chain.length > 0) {
@@ -576,7 +555,7 @@ export default function (pi: ExtensionAPI) {
 						agents,
 						step.agent,
 						taskWithContext,
-						getRequestedModel(step.model),
+						getRequestedModel(step.agent, step.model),
 						step.cwd,
 						i + 1,
 						signal,
@@ -651,7 +630,7 @@ export default function (pi: ExtensionAPI) {
 						agents,
 						t.agent,
 						t.task,
-						getRequestedModel(t.model),
+						getRequestedModel(t.agent, t.model),
 						t.cwd,
 						undefined,
 						signal,
@@ -692,7 +671,7 @@ export default function (pi: ExtensionAPI) {
 					agents,
 					params.agent,
 					params.task,
-					getRequestedModel(params.model),
+					getRequestedModel(params.agent, params.model),
 					params.cwd,
 					undefined,
 					signal,

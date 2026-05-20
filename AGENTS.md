@@ -3,3 +3,4 @@ TypeScript: default to bun unless project uses another manager; add packages via
 SvelteKit: use modern Svelte practices; reference the Svelte best-practices skill for `.svelte` code.
 
 Questions: number sets of questions so answers are easy to reference.
+
