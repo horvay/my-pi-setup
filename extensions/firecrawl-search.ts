@@ -56,14 +56,30 @@ function asErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
+function searchSubagentOnly() {
+  if (process.env.PI_SUBAGENT_NAME === "search") return undefined;
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: "Firecrawl tools run only inside the `search` subagent. Delegate this request with the subagent tool using agent: `search` so raw search results stay out of the main thread.",
+      },
+    ],
+    details: { requiredAgent: "search", currentAgent: process.env.PI_SUBAGENT_NAME ?? "main" },
+    isError: true,
+  };
+}
+
 export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "search",
     label: "Search Web",
     description: "Search web/news/images with Firecrawl; optionally scrape result markdown.",
-    promptSnippet: "Search the web with Firecrawl for current information.",
+    promptSnippet: "Firecrawl search is intended for the `search` subagent; main-thread agents should delegate web research with subagent instead of calling this directly.",
     promptGuidelines: [
-      "Use when the user asks for current web info, discovery, or sources beyond the workspace.",
+      "Main-thread use: delegate current web research to the `search` subagent so raw results stay out of the primary conversation.",
+      "Search subagent use: call this when the task needs current web info, discovery, or sources beyond the workspace.",
       "Use scrape after search when a result needs full markdown content.",
     ],
     parameters: Type.Object({
@@ -73,6 +89,9 @@ export default function (pi: ExtensionAPI) {
       scrapeResults: Type.Optional(Type.Boolean({ description: "Include page markdown; default false." })),
     }),
     async execute(_toolCallId, params, signal, onUpdate) {
+      const subagentRequired = searchSubagentOnly();
+      if (subagentRequired) return subagentRequired;
+
       try {
         onUpdate?.({ content: [{ type: "text", text: `Searching Firecrawl for: ${params.query}` }] });
 
@@ -104,8 +123,11 @@ export default function (pi: ExtensionAPI) {
     name: "scrape",
     label: "Scrape Page",
     description: "Fetch a URL as cleaned markdown with Firecrawl.",
-    promptSnippet: "Fetch a known URL as readable markdown.",
-    promptGuidelines: ["Use for known URLs; prefer over shell fetch because output is cleaned for agent context."],
+    promptSnippet: "Firecrawl scrape is intended for the `search` subagent; main-thread agents should delegate web research with subagent instead of calling this directly.",
+    promptGuidelines: [
+      "Main-thread use: delegate current web research or source fetching to the `search` subagent so raw page content stays out of the primary conversation.",
+      "Search subagent use: fetch a known URL as readable markdown; prefer over shell fetch because output is cleaned for agent context.",
+    ],
     parameters: Type.Object({
       url: Type.String({ description: "The URL to fetch." }),
       onlyMainContent: Type.Optional(Type.Boolean({ description: "Main content only; default true." })),
@@ -114,6 +136,9 @@ export default function (pi: ExtensionAPI) {
       includeMetadata: Type.Optional(Type.Boolean({ description: "Append metadata; default false; details always include it." })),
     }),
     async execute(_toolCallId, params, signal, onUpdate) {
+      const subagentRequired = searchSubagentOnly();
+      if (subagentRequired) return subagentRequired;
+
       try {
         onUpdate?.({ content: [{ type: "text", text: `Scraping page with Firecrawl: ${params.url}` }] });
 

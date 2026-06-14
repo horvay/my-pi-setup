@@ -5,10 +5,10 @@ this is my fork of [davis7dotsh/my-pi-setup](https://github.com/davis7dotsh/my-p
 ## what i've added
 
 - personal agent instructions in `AGENTS.md` (bun-by-default TypeScript, SvelteKit notes, numbered questions)
-- custom subagents in `agents/`: planner, scout, worker, and reviewer
-- reusable prompt templates in `prompts/` for scout/plan and implementation flows
+- subagents in `agents/`: `general` for full-capability work, `checker` for read-only verification, and `search` for isolated web research
+- reusable prompt templates in `prompts/` that delegate to the general/checker agents
 - extra extensions for background processes, process cleanup, exit, undo, compact modes, Playwright MCP, opencode zen login, and subagent delegation
-- Firecrawl tool wording trimmed down to reduce prompt overhead, plus small `yeet` updates for `master` branches
+- Firecrawl web research routed through the isolated `search` subagent so raw search/scrape results stay out of the main thread, plus small `yeet` updates for `master` branches
 - Playwright MCP config and wrapper (`.mcp.json`, `bin/playwright-cli`)
 - added skills: `grill-with-docs`, `impeccable`, `improve-codebase-architecture`, `prototype`, `to-prd`, and `zoom-out`
 - bumped pi packages and default settings for my current setup

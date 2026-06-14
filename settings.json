@@ -1,8 +1,11 @@
 {
-  "lastChangelogVersion": "0.74.1",
+  "lastChangelogVersion": "0.78.1",
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-5.5",
-  "theme": "github-dark-default",
+  "theme": "dark",
   "hideThinkingBlock": false,
-  "defaultThinkingLevel": "high"
+  "defaultThinkingLevel": "low",
+  "packages": [
+    "npm:pi-supergrok"
+  ]
 }
